@@ -26,6 +26,10 @@ export default function DashboardPage() {
   const [isSubmittingTask, setIsSubmittingTask] = useState(false);
   const [deletingTaskId, setDeletingTaskId] = useState<number | null>(null);
   const [taskError, setTaskError] = useState<string | null>(null);
+  
+  // Search and filter state
+  const [searchQuery, setSearchQuery] = useState('');
+  const [statusFilter, setStatusFilter] = useState<string>('all');
 
   const handleEdit = () => {
     setIsEditing(true);
@@ -85,7 +89,16 @@ export default function DashboardPage() {
     }
   };
 
-  // Fetch tasks
+  // Fetch tasks with filters
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      fetchTasks();
+    }, 300); // Debounce search by 300ms
+
+    return () => clearTimeout(timeoutId);
+  }, [searchQuery, statusFilter]);
+
+  // Initial fetch
   useEffect(() => {
     fetchTasks();
   }, []);
@@ -93,7 +106,17 @@ export default function DashboardPage() {
   const fetchTasks = async () => {
     try {
       setIsLoadingTasks(true);
-      const response = await taskAPI.getAll();
+      const filters: { status?: string; search?: string } = {};
+      
+      if (statusFilter !== 'all') {
+        filters.status = statusFilter;
+      }
+      
+      if (searchQuery.trim()) {
+        filters.search = searchQuery.trim();
+      }
+      
+      const response = await taskAPI.getAll(filters);
       if (response.data?.tasks) {
         setTasks(response.data.tasks);
       }
@@ -285,7 +308,7 @@ export default function DashboardPage() {
 
           {/* Tasks Section */}
           <div className="bg-white rounded-lg shadow-md p-6">
-            <div className="flex justify-between items-center mb-6">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
               <h2 className="text-xl font-semibold text-gray-900">My Tasks</h2>
               <button
                 onClick={handleCreateTask}
@@ -295,9 +318,74 @@ export default function DashboardPage() {
               </button>
             </div>
 
+            {/* Search and Filter Bar */}
+            <div className="mb-6 flex flex-col sm:flex-row gap-4">
+              {/* Search Input */}
+              <div className="flex-1">
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <svg
+                      className="h-5 w-5 text-gray-400"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                      />
+                    </svg>
+                  </div>
+                  <input
+                    type="text"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    placeholder="Search tasks..."
+                    className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-1 focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                  />
+                </div>
+              </div>
+
+              {/* Status Filter */}
+              <div className="sm:w-48">
+                <select
+                  value={statusFilter}
+                  onChange={(e) => setStatusFilter(e.target.value)}
+                  className="block w-full px-3 py-2 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                >
+                  <option value="all">All Status</option>
+                  <option value="pending">Pending</option>
+                  <option value="in_progress">In Progress</option>
+                  <option value="completed">Completed</option>
+                </select>
+              </div>
+
+              {/* Clear Filters */}
+              {(searchQuery || statusFilter !== 'all') && (
+                <button
+                  onClick={() => {
+                    setSearchQuery('');
+                    setStatusFilter('all');
+                  }}
+                  className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                >
+                  Clear
+                </button>
+              )}
+            </div>
+
             {taskError && (
               <div className="mb-4 rounded-md bg-red-50 p-4">
                 <p className="text-sm font-medium text-red-800">{taskError}</p>
+              </div>
+            )}
+
+            {/* Task Count */}
+            {!isLoadingTasks && (
+              <div className="mb-4 text-sm text-gray-600">
+                {tasks.length} {tasks.length === 1 ? 'task' : 'tasks'} found
               </div>
             )}
 
