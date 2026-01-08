@@ -16,7 +16,7 @@ class User {
     const result = await query(
       `INSERT INTO users (name, email, password) 
        VALUES ($1, $2, $3) 
-       RETURNING id, name, email, created_at, updated_at`,
+       RETURNING id, name, email, profile_picture, created_at, updated_at`,
       [name, email, password]
     );
     return result.rows[0];
@@ -42,7 +42,7 @@ class User {
    */
   static async findById(id) {
     const result = await query(
-      'SELECT id, name, email, created_at, updated_at FROM users WHERE id = $1',
+      'SELECT id, name, email, profile_picture, created_at, updated_at FROM users WHERE id = $1',
       [id]
     );
     return result.rows[0] || null;
@@ -79,8 +79,25 @@ class User {
       `UPDATE users 
        SET ${updates.join(', ')} 
        WHERE id = $${paramCount} 
-       RETURNING id, name, email, created_at, updated_at`,
+       RETURNING id, name, email, profile_picture, created_at, updated_at`,
       values
+    );
+    return result.rows[0] || null;
+  }
+
+  /**
+   * Update user profile picture
+   * @param {number} id - User's ID
+   * @param {string} profilePictureUrl - URL of the profile picture
+   * @returns {Promise<Object|null>} Updated user object or null
+   */
+  static async updateProfilePicture(id, profilePictureUrl) {
+    const result = await query(
+      `UPDATE users 
+       SET profile_picture = $1, updated_at = CURRENT_TIMESTAMP 
+       WHERE id = $2 
+       RETURNING id, name, email, profile_picture, created_at, updated_at`,
+      [profilePictureUrl, id]
     );
     return result.rows[0] || null;
   }

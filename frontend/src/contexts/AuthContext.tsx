@@ -37,7 +37,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       const response = await authAPI.login({ email, password });
       if (response.data?.user) {
-        setUser(response.data.user);
+        setUser({
+          ...response.data.user,
+          profilePicture: response.data.user.profilePicture,
+        });
         router.push('/dashboard');
       }
     } catch (error) {
@@ -51,7 +54,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       const response = await authAPI.register({ name, email, password });
       if (response.data?.user) {
-        setUser(response.data.user);
+        setUser({
+          ...response.data.user,
+          profilePicture: response.data.user.profilePicture,
+        });
         router.push('/dashboard');
       }
     } catch (error) {

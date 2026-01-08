@@ -1,6 +1,7 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
+import Image from 'next/image';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import { useAuth } from '@/contexts/AuthContext';
 import { userAPI, taskAPI } from '@/lib/api';
@@ -19,6 +20,8 @@ export default function DashboardPage() {
   const [isUpdating, setIsUpdating] = useState(false);
   const [updateError, setUpdateError] = useState<string | null>(null);
   const [updateSuccess, setUpdateSuccess] = useState(false);
+  const [isUploadingPicture, setIsUploadingPicture] = useState(false);
+  const [pictureError, setPictureError] = useState<string | null>(null);
 
   // Task management state
   const [tasks, setTasks] = useState<Task[]>([]);
@@ -76,8 +79,9 @@ export default function DashboardPage() {
         setUpdateSuccess(true);
         setTimeout(() => setUpdateSuccess(false), 3000);
       }
-    } catch (error: any) {
-      setUpdateError(error.message || 'Failed to update profile');
+    } catch (error) {
+      const err = error as { message?: string };
+      setUpdateError(err.message || 'Failed to update profile');
     } finally {
       setIsUpdating(false);
     }
@@ -91,21 +95,59 @@ export default function DashboardPage() {
     }
   };
 
-  // Fetch tasks with filters
+  // Fetch user profile on mount
   useEffect(() => {
-    const timeoutId = setTimeout(() => {
-      fetchTasks();
-    }, 300); // Debounce search by 300ms
-
-    return () => clearTimeout(timeoutId);
-  }, [searchQuery, statusFilter]);
-
-  // Initial fetch
-  useEffect(() => {
-    fetchTasks();
+    const fetchUserProfile = async () => {
+      try {
+        const response = await userAPI.getProfile();
+        if (response.data?.user) {
+          setUser(response.data.user);
+        }
+      } catch (error) {
+        console.error('Failed to fetch user profile:', error);
+      }
+    };
+    fetchUserProfile();
   }, []);
 
-  const fetchTasks = async () => {
+  const handlePictureUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      setPictureError('Please select an image file');
+      return;
+    }
+
+    // Validate file size (5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      setPictureError('Image size must be less than 5MB');
+      return;
+    }
+
+    setIsUploadingPicture(true);
+    setPictureError(null);
+
+    try {
+      const response = await userAPI.uploadProfilePicture(file);
+      if (response.data?.user) {
+        setUser(response.data.user);
+        setUpdateSuccess(true);
+        setTimeout(() => setUpdateSuccess(false), 3000);
+      }
+    } catch (error) {
+      const err = error as { message?: string };
+      setPictureError(err.message || 'Failed to upload profile picture');
+    } finally {
+      setIsUploadingPicture(false);
+      // Reset input
+      e.target.value = '';
+    }
+  };
+
+  // Fetch tasks with filters
+  const fetchTasks = useCallback(async () => {
     try {
       setIsLoadingTasks(true);
       const filters: { status?: string; search?: string } = {};
@@ -122,12 +164,20 @@ export default function DashboardPage() {
       if (response.data?.tasks) {
         setTasks(response.data.tasks);
       }
-    } catch (error: any) {
-      setTaskError(error.message || 'Failed to load tasks');
+    } catch (error) {
+      setTaskError((error as { message?: string }).message || 'Failed to load tasks');
     } finally {
       setIsLoadingTasks(false);
     }
-  };
+  }, [searchQuery, statusFilter]);
+
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      fetchTasks();
+    }, 300); // Debounce search by 300ms
+
+    return () => clearTimeout(timeoutId);
+  }, [fetchTasks]);
 
   // Task CRUD handlers
   const handleCreateTask = () => {
@@ -166,8 +216,9 @@ export default function DashboardPage() {
       }
       await fetchTasks(); // Refresh tasks list
       handleCloseModal();
-    } catch (error: any) {
-      setTaskError(error.message || 'Failed to save task');
+    } catch (error) {
+      const err = error as { message?: string };
+      setTaskError(err.message || 'Failed to save task');
     } finally {
       setIsSubmittingTask(false);
     }
@@ -184,8 +235,9 @@ export default function DashboardPage() {
     try {
       await taskAPI.delete(taskId);
       await fetchTasks(); // Refresh tasks list
-    } catch (error: any) {
-      setTaskError(error.message || 'Failed to delete task');
+    } catch (error) {
+      const err = error as { message?: string };
+      setTaskError(err.message || 'Failed to delete task');
     } finally {
       setDeletingTaskId(null);
     }
@@ -224,6 +276,67 @@ export default function DashboardPage() {
                 </button>
               )}
             </div>
+
+            {/* Profile Picture */}
+            <div className="mb-6 flex items-center space-x-4">
+              <div className="relative">
+                {user?.profilePicture ? (
+                  <Image
+                    src={user.profilePicture}
+                    alt={user.name || 'Profile'}
+                    width={96}
+                    height={96}
+                    className="w-24 h-24 rounded-full object-cover border-4 border-gray-200"
+                  />
+                ) : (
+                  <div className="w-24 h-24 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white text-2xl font-bold border-4 border-gray-200">
+                    {user?.name?.charAt(0).toUpperCase() || 'U'}
+                  </div>
+                )}
+                {!isEditing && (
+                  <label className="absolute bottom-0 right-0 bg-blue-600 text-white p-2 rounded-full cursor-pointer hover:bg-blue-700 transition-colors">
+                    <svg
+                      className="w-4 h-4"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"
+                      />
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"
+                      />
+                    </svg>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={handlePictureUpload}
+                      disabled={isUploadingPicture}
+                      className="hidden"
+                    />
+                  </label>
+                )}
+              </div>
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900">{user?.name}</h3>
+                <p className="text-sm text-gray-500">{user?.email}</p>
+              </div>
+            </div>
+
+            {pictureError && (
+              <ErrorMessage
+                message={pictureError}
+                onDismiss={() => setPictureError(null)}
+                className="mb-4"
+              />
+            )}
 
             {updateSuccess && (
               <SuccessMessage

@@ -1,5 +1,6 @@
 const User = require('../models/User');
 const { AppError } = require('../middleware/errorHandler');
+const { uploadImage } = require('../utils/cloudinary');
 
 /**
  * Get user profile
@@ -21,6 +22,7 @@ const getProfile = async (req, res, next) => {
           id: user.id,
           name: user.name,
           email: user.email,
+          profilePicture: user.profile_picture,
           createdAt: user.created_at,
           updatedAt: user.updated_at,
         },
@@ -73,6 +75,46 @@ const updateProfile = async (req, res, next) => {
           id: updatedUser.id,
           name: updatedUser.name,
           email: updatedUser.email,
+          profilePicture: updatedUser.profile_picture,
+          createdAt: updatedUser.created_at,
+          updatedAt: updatedUser.updated_at,
+        },
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * Upload profile picture
+ * POST /api/user/profile/picture
+ */
+const uploadProfilePicture = async (req, res, next) => {
+  try {
+    if (!req.file) {
+      return next(new AppError('Please upload an image file', 400));
+    }
+
+    // Upload to Cloudinary
+    const result = await uploadImage(req.file.buffer, 'user-profiles', req.userId);
+    
+    // Update user profile picture URL in database
+    const updatedUser = await User.updateProfilePicture(req.userId, result.secure_url);
+
+    if (!updatedUser) {
+      return next(new AppError('User not found', 404));
+    }
+
+    res.status(200).json({
+      status: 'success',
+      message: 'Profile picture uploaded successfully',
+      data: {
+        user: {
+          id: updatedUser.id,
+          name: updatedUser.name,
+          email: updatedUser.email,
+          profilePicture: updatedUser.profile_picture,
           createdAt: updatedUser.created_at,
           updatedAt: updatedUser.updated_at,
         },
@@ -86,5 +128,6 @@ const updateProfile = async (req, res, next) => {
 module.exports = {
   getProfile,
   updateProfile,
+  uploadProfilePicture,
 };
 
