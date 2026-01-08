@@ -7,6 +7,8 @@ import { userAPI, taskAPI } from '@/lib/api';
 import { User, Task } from '@/types';
 import TaskList from '@/components/TaskList';
 import TaskForm from '@/components/TaskForm';
+import ErrorMessage from '@/components/ErrorMessage';
+import SuccessMessage from '@/components/SuccessMessage';
 
 export default function DashboardPage() {
   const { user: authUser, logout } = useAuth();
@@ -224,17 +226,19 @@ export default function DashboardPage() {
             </div>
 
             {updateSuccess && (
-              <div className="mb-4 rounded-md bg-green-50 p-4">
-                <p className="text-sm font-medium text-green-800">
-                  Profile updated successfully!
-                </p>
-              </div>
+              <SuccessMessage
+                message="Profile updated successfully!"
+                onDismiss={() => setUpdateSuccess(false)}
+                className="mb-4"
+              />
             )}
 
             {updateError && (
-              <div className="mb-4 rounded-md bg-red-50 p-4">
-                <p className="text-sm font-medium text-red-800">{updateError}</p>
-              </div>
+              <ErrorMessage
+                message={updateError}
+                onDismiss={() => setUpdateError(null)}
+                className="mb-4"
+              />
             )}
 
             {!isEditing ? (
@@ -377,9 +381,11 @@ export default function DashboardPage() {
             </div>
 
             {taskError && (
-              <div className="mb-4 rounded-md bg-red-50 p-4">
-                <p className="text-sm font-medium text-red-800">{taskError}</p>
-              </div>
+              <ErrorMessage
+                message={taskError}
+                onDismiss={() => setTaskError(null)}
+                className="mb-4"
+              />
             )}
 
             {/* Task Count */}
@@ -395,6 +401,7 @@ export default function DashboardPage() {
               onDelete={handleDeleteTask}
               deletingTaskId={deletingTaskId || undefined}
               isLoading={isLoadingTasks}
+              onCreateNew={handleCreateTask}
             />
           </div>
         </main>
