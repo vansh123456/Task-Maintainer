@@ -49,7 +49,7 @@ export default function TaskForm({ task, onSubmit, onCancel, isSubmitting = fals
           }}
           className={`mt-1 block w-full px-3 py-2 border ${
             errors.title ? 'border-red-300' : 'border-gray-300'
-          } rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm`}
+          } rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm text-gray-900 bg-white`}
           placeholder="Enter task title"
         />
         {errors.title && (
@@ -66,7 +66,7 @@ export default function TaskForm({ task, onSubmit, onCancel, isSubmitting = fals
           rows={3}
           value={description}
           onChange={(e) => setDescription(e.target.value)}
-          className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+          className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm text-gray-900 bg-white"
           placeholder="Enter task description (optional)"
         />
       </div>
@@ -79,7 +79,7 @@ export default function TaskForm({ task, onSubmit, onCancel, isSubmitting = fals
           id="status"
           value={status}
           onChange={(e) => setStatus(e.target.value as Task['status'])}
-          className="mt-1 block w-full px-3 py-2 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+          className="mt-1 block w-full px-3 py-2 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm text-gray-900"
         >
           <option value="pending">Pending</option>
           <option value="in_progress">In Progress</option>
