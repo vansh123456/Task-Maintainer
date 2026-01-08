@@ -26,7 +26,7 @@ const setTokenCookie = (res, token) => {
     ),
     httpOnly: true, // Cookie cannot be accessed by JavaScript
     secure: process.env.NODE_ENV === 'production', // Only send over HTTPS in production
-    sameSite: 'strict', // CSRF protection
+    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax', // 'none' required for cross-origin in production, 'lax' for local dev
   };
 
   res.cookie('token', token, cookieOptions);
@@ -152,7 +152,7 @@ const logout = async (req, res) => {
     expires: new Date(0),
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
-    sameSite: 'strict',
+    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax', // 'none' required for cross-origin in production
   });
 
   res.status(200).json({
